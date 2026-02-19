@@ -17,7 +17,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/multiocular-com/multiocular.git"
+    "url": "git+https://github.com/ai/multiocular.git"
   },
   "bin": "./server/bin.ts",
   "exports": {
