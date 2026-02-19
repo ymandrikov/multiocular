@@ -30,7 +30,7 @@
   }
 
   .changelog {
-    word-wrap: break-word;
+    overflow-wrap: break-word;
 
     :global(p) {
       margin-bottom: var(--safe-padding);
