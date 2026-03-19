@@ -27,16 +27,16 @@ export type CliArg =
   | `--port ${number}`
   | `--storage ${string}`
 
-export type Config = {
+export type Config = (
+  | { commit: string; source: 'commit' }
+  | { source: 'changed' | 'last-commit' }
+) & {
   debug: boolean
   noOpen: boolean
   output: 'json' | 'text' | 'web'
   port: number
   storage: false | FilePath
-} & (
-  | { commit: string; source: 'commit' }
-  | { source: 'changed' | 'last-commit' }
-)
+}
 
 async function printHelp(): Promise<void> {
   let helpPath = join(import.meta.dirname, 'help.txt')

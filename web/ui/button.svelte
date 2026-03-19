@@ -15,7 +15,10 @@
     state,
     variant = 'simple',
     ...props
-  }: {
+  }: (
+    | ({ href: string } & HTMLAnchorAttributes)
+    | ({ href?: undefined } & HTMLButtonAttributes)
+  ) & {
     children: Snippet
     disabled?: boolean
     onclick?: MouseEventHandler<HTMLAnchorElement | HTMLButtonElement>
@@ -23,10 +26,7 @@
     size?: 'big' | 'inline'
     state?: 'hover' | 'pressed'
     variant?: 'approve' | 'ghost' | 'simple'
-  } & (
-    | ({ href: string } & HTMLAnchorAttributes)
-    | ({ href?: undefined } & HTMLButtonAttributes)
-  ) = $props()
+  } = $props()
 </script>
 
 {#if typeof props.href !== 'undefined'}

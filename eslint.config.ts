@@ -17,7 +17,9 @@ export default [
         {
           allowExperimental: true
         }
-      ]
+      ],
+      // TODO until https://github.com/thefrontside/javascript/pull/88
+      'prefer-let/prefer-let': ['error', { forceUpperCaseConst: false }]
     }
   },
   {
