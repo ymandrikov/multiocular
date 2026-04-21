@@ -2,6 +2,10 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## 0.8.3
+
+- Updated XSS protection library.
+
 ## 0.8.2
 
 - Improved performance.
