@@ -1,14 +1,7 @@
 {
-  "*.{html,md,json}": "prettier --experimental-cli --write",
-  "*.{js,ts,cjs}": [
-    "prettier --experimental-cli --write",
-    "eslint --fix --concurrency auto"
-  ],
-  "*.css": ["prettier --experimental-cli --write", "stylelint --fix"],
-  "*.svelte": [
-    "prettier --experimental-cli --write",
-    "stylelint --fix",
-    "eslint --fix --concurrency auto"
-  ],
+  "*.{html,md,json}": "oxfmt",
+  "*.{js,ts,cjs}": ["oxfmt", "eslint --fix --concurrency auto"],
+  "*.css": ["oxfmt", "stylelint --fix"],
+  "*.svelte": ["oxfmt", "stylelint --fix", "eslint --fix --concurrency auto"],
   "*.svg": "svgo"
 }

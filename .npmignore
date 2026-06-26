@@ -7,7 +7,6 @@ test/
 
 .editorconfig
 .gitignore
-.prettierignore
 .prettierrc.json
 .eslintcache
 eslint.config.ts
@@ -17,6 +16,8 @@ nano-staged.json
 tsconfig.*
 AGENTS.md
 .env
+pnpm-workspace.yaml
+oxfmt.config.ts
 
 web/assets/*.woff
 web/assets/*-math-*.woff2

@@ -16,7 +16,7 @@
       "extensions": [
         "connor4312.nodejs-testing",
         "dbaeumer.vscode-eslint",
-        "esbenp.prettier-vscode",
+        "oxc.oxc-vscode",
         "stylelint.vscode-stylelint",
         "svelte.svelte-vscode",
         "webben.browserslist",
@@ -24,10 +24,12 @@
         "streetsidesoftware.code-spell-checker",
         "yzhang.markdown-all-in-one",
         "davidlday.languagetool-linter",
-        "felixfbecker.postgresql-syntax",
         "formulahendry.auto-rename-tag",
         "walnuts1018.oklch-vscode"
-      ]
+      ],
+      "zed": {
+        "extensions": ["dockerfile", "svelte", "oxc"]
+      }
     }
   }
 }
