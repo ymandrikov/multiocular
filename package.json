@@ -2,24 +2,21 @@
   "name": "multiocular",
   "version": "0.8.3",
   "description": "Review dependencies changes to prevent supply chain attack",
-  "type": "module",
-  "engines": {
-    "node": "^22.16.0 || >=24.0.0"
-  },
   "keywords": [
-    "security",
-    "supply chain attack",
     "dependencies",
     "npm",
-    "pnpm"
+    "pnpm",
+    "security",
+    "supply chain attack"
   ],
-  "author": "Andrey Sitnik <andrey@sitnik.es>",
   "license": "MIT",
+  "author": "Andrey Sitnik <andrey@sitnik.es>",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ai/multiocular.git"
   },
   "bin": "./server/bin.ts",
+  "type": "module",
   "exports": {
     "./server": "./server/index.ts",
     "./package.json": "./package.json"
@@ -97,10 +94,7 @@
     "typescript": "6.0.3",
     "vite": "8.0.9"
   },
-  "pnpm": {
-    "blockExoticSubdeps": true,
-    "onlyBuiltDependencies": [
-      "husky"
-    ]
+  "engines": {
+    "node": "^22.16.0 || >=24.0.0"
   }
 }

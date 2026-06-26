@@ -1,7 +1,5 @@
 {
-  "build": {
-    "dockerfile": "Dockerfile"
-  },
+  "image": "ghcr.io/ai/devcontainer:latest",
   "runArgs": [
     "--ulimit=host",
     "-p",
