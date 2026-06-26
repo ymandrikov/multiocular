@@ -12,6 +12,7 @@ export default [
       '@typescript-eslint/no-floating-promises': 'off',
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/no-unsafe-type-assertion': 'off',
+      '@typescript-eslint/prefer-promise-reject-errors': 'off',
       'n/no-unsupported-features/node-builtins': [
         'error',
         {
