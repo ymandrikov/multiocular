@@ -1,0 +1,297 @@
+# Review package: 3d57fd389b8bfe6197e6b2cae47ef755ccbda0e6..be4c2db1794ff31ed84c298f039c9bef901c91c0
+
+## Commits
+be4c2db Coalesce Yarn public dependency identities
+
+## Files changed
+ server/loader/versions/yarn.ts |  55 +++++++++++++---
+ server/test/yarn.test.ts       | 142 +++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 188 insertions(+), 9 deletions(-)
+
+## Diff
+diff --git a/server/loader/versions/yarn.ts b/server/loader/versions/yarn.ts
+index e7f7055..7ded1d0 100644
+--- a/server/loader/versions/yarn.ts
++++ b/server/loader/versions/yarn.ts
+@@ -1,29 +1,56 @@
+ import { basename } from 'node:path'
+ import { parse } from 'yaml'
+ 
+ import { type Dependency, dependencyType } from '../../../common/types.ts'
+ import { warn } from '../../cli/print.ts'
+ import {
+   getDirectDependencies,
+   separateFiles,
+   type VersionsLoader
+ } from './common.ts'
+-import { resolveYarnIdentity, type YarnText } from './yarn-identity.ts'
++import {
++  resolveYarnIdentity,
++  type YarnRequestedName,
++  type YarnResolvedName,
++  type YarnText
++} from './yarn-identity.ts'
+ 
+ type YarnEntry = {
+   format: 'berry' | 'classic'
+   key: string
+   resolution: YarnText
+   version: string
+ }
+ 
++type YarnResolution = {
++  name: YarnResolvedName
++  requested: YarnRequestedName[]
++  version: string
++}
++
++function aggregate(entries: YarnResolution[]): YarnResolution[] {
++  let groups = new Map<string, YarnResolution>()
++
++  for (let entry of entries) {
++    let key = JSON.stringify([entry.name, entry.version])
++    let group = groups.get(key)
++    if (group) {
++      group.requested = [...new Set([...group.requested, ...entry.requested])]
++    } else {
++      groups.set(key, { ...entry })
++    }
++  }
++
++  return [...groups.values()]
++}
++
+ function text(value: unknown): YarnText {
+   return typeof value === 'string'
+     ? { content: value, missing: false }
+     : { missing: true }
+ }
+ 
+ function isYarnBerry(content: string): boolean {
+   return content.includes('__metadata:') && content.includes('version:')
+ }
+ 
+@@ -96,48 +123,58 @@ export const yarn = {
+       let name = basename(file)
+       return name === 'package.json' || name === 'yarn.lock'
+     })
+   },
+   load(files) {
+     let dependencies: Dependency[] = []
+     let { lockFiles, packageJsonFiles } = separateFiles(files, 'yarn.lock')
+     let direct = getDirectDependencies(packageJsonFiles)
+ 
+     for (let file of lockFiles) {
++      let resolutions: YarnResolution[] = []
++
+       for (let entry of isYarnBerry(file.content)
+         ? parseYarnBerryLock(file.content)
+         : parseYarn1Lock(file.content)) {
+         let identity = resolveYarnIdentity(
+           entry.format === 'berry'
+             ? { format: 'berry', key: entry.key, locator: entry.resolution }
+             : { format: 'classic', key: entry.key }
+         )
+ 
+         if (identity.invalid) {
+           warn(
+             'Skipped unparseable Yarn lock entry',
+             `${file.path}: ${entry.key}`
+           )
+           continue
+         }
+ 
++        resolutions.push({
++          name: identity.name,
++          requested: identity.requested,
++          version:
++            !entry.resolution.missing &&
++            (entry.resolution.content.includes('github.com') ||
++              entry.resolution.content.includes('git+'))
++              ? entry.resolution.content
++              : entry.version
++        })
++      }
++
++      for (let entry of aggregate(resolutions)) {
+         dependencies.push(
+           dependencyType({
+-            direct: identity.requested.some(name => direct.has(name)),
++            direct: entry.requested.some(name => direct.has(name)),
+             from: 'yarn',
+-            name: identity.name,
++            name: entry.name,
+             source: file.path,
+             type: 'npm',
+-            version:
+-              !entry.resolution.missing &&
+-              (entry.resolution.content.includes('github.com') ||
+-                entry.resolution.content.includes('git+'))
+-                ? entry.resolution.content
+-                : entry.version
++            version: entry.version
+           })
+         )
+       }
+     }
+ 
+     return dependencies
+   }
+ } satisfies VersionsLoader
+diff --git a/server/test/yarn.test.ts b/server/test/yarn.test.ts
+index da2b67d..e6064c6 100644
+--- a/server/test/yarn.test.ts
++++ b/server/test/yarn.test.ts
+@@ -249,10 +249,152 @@ test('warns and excludes unparseable or ambiguous entries', context => {
+         source: '/project/yarn.lock',
+         type: 'npm',
+         version: '1.0.0'
+       }
+     ]
+   )
+   assert.match(warning, /\/project\/yarn\.lock/)
+   assert.match(warning, /first@npm:one@/)
+   assert.match(warning, /pkg@\^1\.0\.0, broken/)
+ })
++
++test('coalesces separate Yarn 1 alias and target entries', () => {
++  assert.deepEqual(
++    yarn.load([
++      loadedFile(
++        '/project/package.json',
++        JSON.stringify({
++          dependencies: { 'my-alias': 'npm:lodash@4.17.21' }
++        })
++      ),
++      loadedFile(
++        '/project/yarn.lock',
++        [
++          'lodash@4.17.21:',
++          '  version "4.17.21"',
++          'my-alias@npm:lodash@4.17.21:',
++          '  version "4.17.21"'
++        ].join('\n')
++      )
++    ]),
++    [
++      {
++        direct: true,
++        from: 'yarn',
++        name: 'lodash',
++        source: '/project/yarn.lock',
++        type: 'npm',
++        version: '4.17.21'
++      }
++    ]
++  )
++})
++
++test('keeps different effective versions separate', () => {
++  assert.deepEqual(
++    yarn.load([
++      loadedFile(
++        '/project/package.json',
++        JSON.stringify({
++          dependencies: { alias: 'npm:zeta@1.0.0' }
++        })
++      ),
++      loadedFile(
++        '/project/yarn.lock',
++        [
++          'zeta@1.0.0:',
++          '  version "1.0.0"',
++          'alpha@1.0.0:',
++          '  version "1.0.0"',
++          'alias@npm:zeta@1.0.0:',
++          '  version "1.0.0"',
++          'zeta@2.0.0:',
++          '  version "2.0.0"'
++        ].join('\n')
++      )
++    ]),
++    [
++      {
++        direct: true,
++        from: 'yarn',
++        name: 'zeta',
++        source: '/project/yarn.lock',
++        type: 'npm',
++        version: '1.0.0'
++      },
++      {
++        direct: false,
++        from: 'yarn',
++        name: 'alpha',
++        source: '/project/yarn.lock',
++        type: 'npm',
++        version: '1.0.0'
++      },
++      {
++        direct: false,
++        from: 'yarn',
++        name: 'zeta',
++        source: '/project/yarn.lock',
++        type: 'npm',
++        version: '2.0.0'
++      }
++    ]
++  )
++})
++
++test('coalesces equal identities with different locators', () => {
++  assert.deepEqual(
++    yarn.load([
++      loadedFile(
++        '/project/yarn.lock',
++        [
++          '__metadata:',
++          '  version: 8',
++          '"pkg@npm:^1.0.0":',
++          '  version: 1.0.0',
++          '  resolution: "pkg@npm:1.0.0"',
++          '"pkg@patch:pkg@npm%3A1.0.0#hash":',
++          '  version: 1.0.0',
++          '  resolution: "pkg@patch:pkg@npm%3A1.0.0#hash"'
++        ].join('\n')
++      )
++    ]),
++    [
++      {
++        direct: false,
++        from: 'yarn',
++        name: 'pkg',
++        source: '/project/yarn.lock',
++        type: 'npm',
++        version: '1.0.0'
++      }
++    ]
++  )
++})
++
++test('does not aggregate across lockfiles', () => {
++  let lock = ['pkg@1.0.0:', '  version "1.0.0"'].join('\n')
++  assert.deepEqual(
++    yarn.load([
++      loadedFile('/first/yarn.lock', lock),
++      loadedFile('/second/yarn.lock', lock)
++    ]),
++    [
++      {
++        direct: false,
++        from: 'yarn',
++        name: 'pkg',
++        source: '/first/yarn.lock',
++        type: 'npm',
++        version: '1.0.0'
++      },
++      {
++        direct: false,
++        from: 'yarn',
++        name: 'pkg',
++        source: '/second/yarn.lock',
++        type: 'npm',
++        version: '1.0.0'
++      }
++    ]
++  )
++})
