@@ -83,16 +83,18 @@ function parseYarnBerryLock(content: string): ParsedDependency[] {
       'version' in value &&
       typeof value.version === 'string'
     ) {
-      // Yarn Berry format: "package@npm:1.0.0" or "@scope/package@npm:1.0.0"
-      let name = splitPackage(key).name
+      let resolved =
+        'resolution' in value && typeof value.resolution === 'string'
+          ? value.resolution
+          : undefined
+
+      // Yarn Berry keeps one resolution locator for grouped descriptors.
+      let name = splitPackage(resolved ?? key).name
       if (!name) continue
 
       dependencies.push({
         name,
-        resolved:
-          'resolution' in value && typeof value.resolution === 'string'
-            ? value.resolution
-            : undefined,
+        resolved,
         version: value.version
       })
     }
