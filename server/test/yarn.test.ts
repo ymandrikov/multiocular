@@ -39,3 +39,26 @@ test('parses grouped Yarn Berry keys resolving to one version', () => {
     ]
   )
 })
+
+test('parses grouped quoted scoped Yarn Classic keys', () => {
+  assert.deepEqual(
+    yarn.load([
+      loadedFile(
+        '/project/yarn.lock',
+        ['"@scope/pkg@^1.0.0", "@scope/pkg@^2.0.0":', '  version "2.1.0"'].join(
+          '\n'
+        )
+      )
+    ]),
+    [
+      {
+        direct: false,
+        from: 'yarn',
+        name: '@scope/pkg',
+        source: '/project/yarn.lock',
+        type: 'npm',
+        version: '2.1.0'
+      }
+    ]
+  )
+})

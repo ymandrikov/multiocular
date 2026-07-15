@@ -52,8 +52,9 @@ function parseYarn1Lock(content: string): ParsedDependency[] {
     let entryData = entries[entry]
     if (!entryData?.version) continue
 
-    // Yarn 1 format: @scope/package@^1.0.0 or package@^1.0.0
-    let { name } = splitPackage(entry)
+    // Every descriptor in a Yarn Classic group shares one package.
+    let [first] = entry.split(', ')
+    let { name } = splitPackage(first ?? entry)
     if (!name) continue
 
     dependencies.push({
