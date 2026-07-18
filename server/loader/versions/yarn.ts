@@ -53,7 +53,9 @@ function parseYarn1Lock(content: string): ParsedDependency[] {
     if (!entryData?.version) continue
 
     // Yarn 1 format: @scope/package@^1.0.0 or package@^1.0.0
-    let { name } = splitPackage(entry)
+    // Every descriptor in a Yarn Classic group shares one package.
+    let [first] = entry.split(', ')
+    let { name } = splitPackage(first ?? entry)
     if (!name) continue
 
     dependencies.push({
@@ -83,16 +85,19 @@ function parseYarnBerryLock(content: string): ParsedDependency[] {
       'version' in value &&
       typeof value.version === 'string'
     ) {
+      let resolved =
+        'resolution' in value && typeof value.resolution === 'string'
+          ? value.resolution
+          : undefined
+
       // Yarn Berry format: "package@npm:1.0.0" or "@scope/package@npm:1.0.0"
-      let name = splitPackage(key).name
+      // Yarn Berry keeps one resolution locator for grouped descriptors.
+      let name = splitPackage(resolved ?? key).name
       if (!name) continue
 
       dependencies.push({
         name,
-        resolved:
-          'resolution' in value && typeof value.resolution === 'string'
-            ? value.resolution
-            : undefined,
+        resolved,
         version: value.version
       })
     }
