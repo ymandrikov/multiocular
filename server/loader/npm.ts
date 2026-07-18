@@ -1,4 +1,4 @@
-import { exec } from 'node:child_process'
+import { execFile } from 'node:child_process'
 import { rmSync } from 'node:fs'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -12,7 +12,7 @@ import type {
 } from '../../common/types.ts'
 
 const DOWNLOADED_PACKAGES = new Map<string, FilePath>()
-const execAsync = promisify(exec)
+const execFileAsync = promisify(execFile)
 
 function isGitUrl(version: DependencyVersion): boolean {
   return (
@@ -89,13 +89,22 @@ export async function getNpmContent(
 
     let tarballBuffer = await downloadTarball(tarballUrl)
     let tempDir = await mkdtemp(join(tmpdir(), 'multiocular-'))
-    let tarballPath = join(tempDir, 'package.tgz')
 
-    await writeFile(tarballPath, Buffer.from(tarballBuffer))
-    await execAsync(
-      `tar -xzf "${tarballPath}" --strip-components=1 -C "${tempDir}"`
-    )
-    await rm(tarballPath)
+    try {
+      let tarballPath = join(tempDir, 'package.tgz')
+      await writeFile(tarballPath, Buffer.from(tarballBuffer))
+
+      await execFileAsync(
+        'tar',
+        ['-xzf', 'package.tgz', '--strip-components=1'],
+        { cwd: tempDir }
+      )
+
+      await rm(tarballPath)
+    } catch (error) {
+      await rm(tempDir, { force: true, recursive: true })
+      throw error
+    }
 
     DOWNLOADED_PACKAGES.set(spec, tempDir as FilePath)
   }
